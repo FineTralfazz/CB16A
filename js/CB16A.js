@@ -1,6 +1,7 @@
 class CB16A {
 	constructor() {
-		this.register_mapping = {
+		this.ascii_bin_mapping = {
+			//// Registers
 			// 8 generics
 			"r0": 0x0,
 			"r1": 0x1,
@@ -13,10 +14,9 @@ class CB16A {
 			// 0x8-c are reserved for future use
 			"cr": 0xd, // Comparison result
 			"sp": 0xe, // Stack pointer
-			"ip": 0xf // Instruction pointer
-		}
+			"ip": 0xf, // Instruction pointer
 
-		this.instruction_mapping = {
+			//// Instructions
 			"nop": 0x10,
 			"mov": 0x11,
 			"add": 0x12,
@@ -41,21 +41,37 @@ class CB16A {
 		// This is kind of gross, but was the simplest way I could think of
 		// to implement the basic syntax
 		var lines = code.split(/\n/)
-		var offset = 0
-		
+		var address = 0
+		var labels = {}
+		var unresolved_labels = []
+		var _this = this
+
 		lines.forEach(function(line) {
 			// Normalize and remove comments
+			console.log(`Assembling ${line}`)
 			line = line.split(';')[0]
 			line = line.trim()
 
 			if (line[line.length-1] == ':') {
 				// Handle labels
+				var label = line.slice(0, -1)
+				labels[label] = address
 			} else {
 				// Normal instructions
-				var instruction = line.split(/\S/)[0].trim()
-				var destination = line.split(/\S/, 1)[1].split(',')[0].trim()
+				var instruction = line.split(/\s+/)[0].trim()
+				var destination = line.split(',')[0].split(/\s+/)[1].trim()
 				var source = line.split(',')[1].trim()
+				_this._convert_and_write(instruction, address++)
+				_this._convert_and_write(destination, address++)
+				_this._convert_and_write(source, address++)
 			}
 		})
+	}
+
+
+	_convert_and_write(value, address) {
+		// Converts source code representations of instructions/registers/etc.
+		// to binary and writes them to the specified address
+		this.memory[address] = this.ascii_bin_mapping[value]
 	}
 }
