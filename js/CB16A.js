@@ -66,12 +66,20 @@ class CB16A {
 				_this._convert_and_write(source, address++)
 			}
 		})
+		return this.memory
 	}
 
 
 	_convert_and_write(value, address) {
 		// Converts source code representations of instructions/registers/etc.
 		// to binary and writes them to the specified address
-		this.memory[address] = this.ascii_bin_mapping[value]
+		if (!isNaN(value)) {
+			// If it's a number, we can just write it.
+			// The + converts strings to numbers, because... JS
+			this.memory[address] = +value
+		} else {
+			// Do something with strings
+			this.memory[address] = this.ascii_bin_mapping[value]
+		}
 	}
 }
