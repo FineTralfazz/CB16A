@@ -28,12 +28,16 @@ class CB16A {
 
 		this.memory = new Uint8Array(65536) // 2^16
 		this.registers = new Uint16Array(16) // 2^4
+		this.registers[0xe] = 32768 // Stack is the last 2^15 bytes
 	}
 
 
 	reset() {
 		this.memory.fill(0)
-		// Should also reload the code, instead of just clearing the memory
+		this.registers.fill(0)
+		if (this.initial_state) {
+			this.memory = this.initial_state
+		}
 	}
 
 
@@ -66,7 +70,58 @@ class CB16A {
 				_this._convert_and_write(source, address++)
 			}
 		})
+		this.initial_state = this.memory
 		return this.memory
+	}
+
+
+	tick() {
+		var instruction = this._read_ip()
+		switch (instruction) {
+			case 0x10: // nop
+				break
+			
+			case 0x11: // mov
+				var destination = this._read_ip()
+				var source = this._read_ip()
+				this._write_byte(destination, this._read_byte(source))
+				break
+
+			case 0x12: // add
+				var destination = this._read_ip()
+				var source = this._read_ip()
+				var value = this._read_byte[source] + this._read_byte[destination]
+				this._write_byte(destination, value)
+				break
+
+			case 0x13: // sub
+				var destination = this._read_ip()
+				var source = this._read_ip()
+				var value = this._read_byte(destination) - this._read_byte(source)
+				this._write_byte(destination, value)
+				break
+
+			case 0x14: // push
+				var destination = ++this.registers[0xf]
+				var byte = this._read_byte(this._read_ip())
+				this._write_byte(destination, source)
+				break
+
+			case 0x15: // pop
+				var destination = this._read_ip()
+				var byte = this._read_byte(0xf)
+				this.registers[0xf]--
+				this._write_byte(destination, byte)
+				break
+
+			case 0x16: // jmp
+				this.registers[0xe] = this._read_ip()
+				break
+
+			default:
+				console.error(`Invalid instruction ${instruction} at ${this.registers[0xf]-1}`)
+				break
+		}
 	}
 
 
@@ -80,6 +135,34 @@ class CB16A {
 		} else {
 			// Do something with strings
 			this.memory[address] = this.ascii_bin_mapping[value]
+		}
+	}
+
+
+	_read_ip() {
+		var byte = this.memory[this.registers[0xf]]
+		this.registers[0xf]++
+		return byte
+	}
+
+
+	_read_byte(location) {
+		// Hacky workaround to tell the difference between registers and memory.
+		// I need to figure out how real CPUs do it and use that instead...
+		if (location <= 0xf) {
+			return this.registers[location]
+		} else {
+			return this.memory[location]
+		}
+	}
+	
+	
+	_write_byte(location, value) {
+		// Hacky workaround -- see comment on _read_byte()
+		if (location <= 0xf) {
+			this.registers[location] = value
+		} else {
+			this.memory[location] = value
 		}
 	}
 }
