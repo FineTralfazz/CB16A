@@ -36,8 +36,9 @@ class CB16A {
 		this.memory.fill(0)
 		this.registers.fill(0)
 		if (this.initial_state) {
-			this.memory = this.initial_state
+			this.memory = this.initial_state.slice()
 		}
+		this.registers[0xe] = 32768
 	}
 
 
@@ -63,59 +64,79 @@ class CB16A {
 			} else {
 				// Normal instructions
 				var instruction = line.split(/\s+/)[0].trim()
-				var destination = line.split(',')[0].split(/\s+/)[1].trim()
-				var source = line.split(',')[1].trim()
-				_this._convert_and_write(instruction, address++)
-				_this._convert_and_write(destination, address++)
-				_this._convert_and_write(source, address++)
+				var destination
+				var source
+				if (line.indexOf(',') != -1) {
+					destination = line.split(',')[0].split(/\s+/)[1].trim()
+					source = line.split(',')[1].trim()
+				} else {
+					destination = line.split(/\s+/)[1].trim()
+				}
+				
+				// Map resolve, if necessary
+				instruction = _this._map_resolve(instruction)
+				destination = _this._map_resolve(destination)
+				if (source) source = _this._map_resolve(source)
+
+				// Write
+				_this._write_mem_byte(instruction, address)
+				address++
+				_this._write_mem_word(destination, address)
+				address += 2
+				if (source) {
+					_this._write_mem_word(source, address)
+					address += 2
+				}
 			}
 		})
-		this.initial_state = this.memory
+		this.initial_state = this.memory.slice()
 		return this.memory
 	}
 
 
+
 	tick() {
-		var instruction = this._read_ip()
+		var instruction = this._read_ip_byte()
 		switch (instruction) {
 			case 0x10: // nop
 				break
 			
 			case 0x11: // mov
-				var destination = this._read_ip()
-				var source = this._read_ip()
-				this._write_byte(destination, this._read_byte(source))
+				var destination = this._read_ip_word()
+				var source = this._read_ip_word()
+				this.registers[destination] = this.registers[source]
 				break
 
 			case 0x12: // add
-				var destination = this._read_ip()
-				var source = this._read_ip()
-				var value = this._read_byte[source] + this._read_byte[destination]
-				this._write_byte(destination, value)
+				var destination = this._read_ip_word()
+				var source = this._read_ip_word()
+				var value = this.registers[source] + this.registers[destination]
+				this.registers[destination] = value
 				break
 
 			case 0x13: // sub
-				var destination = this._read_ip()
-				var source = this._read_ip()
-				var value = this._read_byte(destination) - this._read_byte(source)
-				this._write_byte(destination, value)
+				var destination = this._read_ip_word()
+				var source = this._read_ip_word()
+				var value = this.registers[destination] - this.registers[source]
+				this.registers[destination] = value
 				break
 
 			case 0x14: // push
-				var destination = ++this.registers[0xf]
-				var byte = this._read_byte(this._read_ip())
-				this._write_byte(destination, source)
+				var value = this.registers[this._read_ip_word()]
+				this.registers[0xe] += 2
+				var destination = this.registers[0xe]
+				this._write_mem_word(value, destination)
 				break
 
 			case 0x15: // pop
-				var destination = this._read_ip()
-				var byte = this._read_byte(0xf)
-				this.registers[0xf]--
-				this._write_byte(destination, byte)
+				var destination = this._read_ip_word()
+				var value = this._read_mem_word(this.registers[0xe])
+				this.registers[0xe] -= 2
+				this.registers[destination] = value
 				break
 
 			case 0x16: // jmp
-				this.registers[0xe] = this._read_ip()
+				this.registers[0xe] = this._read_ip_word()
 				break
 
 			default:
@@ -125,44 +146,53 @@ class CB16A {
 	}
 
 
-	_convert_and_write(value, address) {
+	_map_resolve(value) {
 		// Converts source code representations of instructions/registers/etc.
-		// to binary and writes them to the specified address
-		if (!isNaN(value)) {
-			// If it's a number, we can just write it.
-			// The + converts strings to numbers, because... JS
-			this.memory[address] = +value
+		// to binary, if necessary
+		if (isNaN(value)) {
+			return this.ascii_bin_mapping[value]
 		} else {
-			// Do something with strings
-			this.memory[address] = this.ascii_bin_mapping[value]
+			return value
 		}
 	}
 
 
-	_read_ip() {
+	_read_ip_byte() {
 		var byte = this.memory[this.registers[0xf]]
 		this.registers[0xf]++
 		return byte
 	}
 
 
-	_read_byte(location) {
-		// Hacky workaround to tell the difference between registers and memory.
-		// I need to figure out how real CPUs do it and use that instead...
-		if (location <= 0xf) {
-			return this.registers[location]
-		} else {
-			return this.memory[location]
-		}
+	_read_ip_word() {
+		var word = this.memory[this.registers[0xf]]
+		word = word << 8
+		this.registers[0xf]++
+		word = word + this.memory[this.registers[0xf]]
+		this.registers[0xf]++
+		return word
+	}
+
+
+	_read_mem_byte(location) {
+		return this.memory[location]
 	}
 	
 	
-	_write_byte(location, value) {
-		// Hacky workaround -- see comment on _read_byte()
-		if (location <= 0xf) {
-			this.registers[location] = value
-		} else {
-			this.memory[location] = value
-		}
+	_write_mem_byte(value, location) {
+		this.memory[location] = value
+	}
+	
+
+	_read_mem_word(location) {
+		var word = this.memory[location]
+		word = word << 8 // Did you know that JS has a bitshift operation? Because I didn't.
+		return word + this.memory[location+1]
+	}
+
+
+	_write_mem_word(data, location) {
+		this.memory[location] = data >> 8
+		this.memory[location+1] = data - ((data >> 8) << 8)
 	}
 }
