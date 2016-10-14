@@ -23,9 +23,25 @@ class CB16A {
 			"sub": 0x13,
 			"push": 0x14,
 			"pop": 0x15,
-			"jmp": 0x16
+			"jmp": 0x16,
+			"cmp": 0x17,
+			"je": 0x18,
+			"jg": 0x19,
+			"jge": 0x1a,
+			"jl": 0x1b,
+			"jle": 0x1c,
+			"jne": 0x1d,
+			"set": 0x1e,
+			"save": 0x1f,
+			"load": 0x20
 		}
 
+		// Comparison flags
+		this.CMP_LESS = 1
+		this.CMP_EQUAL = 2
+		this.CMP_GREATER = 4
+
+		// Initialize state
 		this.memory = new Uint8Array(65536) // 2^16
 		this.registers = new Uint16Array(16) // 2^4
 		this.registers[0xe] = 32768 // Stack is the last 2^15 bytes
@@ -139,6 +155,79 @@ class CB16A {
 				this.registers[0xe] = this._read_ip_word()
 				break
 
+			case 0x17: // cmp
+				var arg2 = this.registers[this._read_ip_word()];
+				var arg1 = this.registers[this._read_ip_word()];
+				var result = 0
+
+				if (arg1 < arg2) result |= this.CMP_LESS
+				if (arg1 == arg2) result |= this.CMP_EQUAL
+				if (arg1 > arg2) result |= this.CMP_GREATER
+
+				this.registers[0xd] = result
+				break
+
+			case 0x18: // je
+				var destination = this._read_ip_word()
+				if (this.registers[0xd] & this.CMP_EQUAL) {
+					this.registers[0xf] = destination
+				}
+				break
+
+			case 0x19: // jg
+				var destination = this._read_ip_word()
+				if (this.registers[0xd] & this.CMP_GREATER) {
+					this.registers[0xf] = destination
+				}
+				break
+
+			case 0x1a: // jge
+				var destination = this._read_ip_word()
+				if (this.registers[0xd] & (this.CMP_GREATER | this.CMP_EQUAL)) {
+					this.registers[0xf] = destination
+				}
+				break
+
+			case 0x1b: // jl
+				var destination = this._read_ip_word()
+				if (this.registers[0xd] & this.CMP_LESS) {
+					this.registers[0xf] = destination
+				}
+				break
+
+			case 0x1c: // jle
+				var destination = this._read_ip_word()
+				if (this.registers[0xd] & (this.CMP_LESS | this.CMP_EQUAL)) {
+					this.registers[0xf] = destination
+				}
+				break
+
+			case 0x1d: // jne
+				var destination = this._read_ip_word()
+				if (!this.registers[0xd] & this.CMP_EQUAL) {
+					this.registers[0xf] = destination
+				}
+				break
+
+			case 0x1e: // set
+				var destination = this._read_ip_word()
+				var value = this._read_ip_word()
+				this.registers[destination] = value
+				break
+
+			case 0x1f: // save
+				var destination = this._read_ip_word()
+				var value = this.registers[this._read_ip_word()]
+				this._write_mem_word(value, destination)
+				break
+
+			case 0x20: // load
+				var destination = this._read_ip_word()
+				var source = this._read_ip_word()
+				this.registers[destination] = this._read_mem_word(source)
+				break
+
+
 			default:
 				console.error(`Invalid instruction ${instruction} at ${this.registers[0xf]-1}`)
 				break
@@ -152,7 +241,7 @@ class CB16A {
 		if (isNaN(value)) {
 			return this.ascii_bin_mapping[value]
 		} else {
-			return value
+			return +value
 		}
 	}
 
@@ -174,25 +263,25 @@ class CB16A {
 	}
 
 
-	_read_mem_byte(location) {
-		return this.memory[location]
+	_read_mem_byte(address) {
+		return this.memory[address]
 	}
 	
 	
-	_write_mem_byte(value, location) {
-		this.memory[location] = value
+	_write_mem_byte(value, address) {
+		this.memory[address] = value
 	}
 	
 
-	_read_mem_word(location) {
-		var word = this.memory[location]
+	_read_mem_word(address) {
+		var word = this.memory[address]
 		word = word << 8 // Did you know that JS has a bitshift operation? Because I didn't.
-		return word + this.memory[location+1]
+		return word + this.memory[address+1]
 	}
 
 
-	_write_mem_word(data, location) {
-		this.memory[location] = data >> 8
-		this.memory[location+1] = data - ((data >> 8) << 8)
+	_write_mem_word(data, address) {
+		this.memory[address] = data >> 8
+		this.memory[address+1] = data - ((data >> 8) << 8)
 	}
 }
