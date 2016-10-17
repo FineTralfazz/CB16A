@@ -1,8 +1,20 @@
 <head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 	<script src="js/CB16A.js"></script>
 	<script src="js/web.js"></script>
 	<title>CB16A</title>
 </head>
 <body>
-	<textarea name="code"></textarea>
+	<label>Your code:</label>
+	<br />
+	<textarea id="code"></textarea>
+	<br />
+	<button onclick="javascript:assemble()">Assemble</button>
+	<button onclick="javascript:cpu.tick()">Tick</button>
+	<button onclick="javascript:cpu.reset()">Reset CPU</button>
+	<br />
+	<br />
+	<label>Output:</label>
+	<br />
+	<textarea id="output"></textarea>
 </body>

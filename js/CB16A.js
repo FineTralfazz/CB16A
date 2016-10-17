@@ -1,5 +1,8 @@
 class CB16A {
-	constructor() {
+	constructor(write_out) {
+		// function to output characters
+		this._write_out = write_out
+
 		this.ascii_bin_mapping = {
 			//// Registers
 			// 8 generics
@@ -33,13 +36,14 @@ class CB16A {
 			"jne": 0x1d,
 			"set": 0x1e,
 			"save": 0x1f,
-			"load": 0x20
+			"load": 0x20,
+			"out": 0x21
 		}
 
 		// Comparison flags
-		this.CMP_LESS = 1
-		this.CMP_EQUAL = 2
-		this.CMP_GREATER = 4
+		this._CMP_LESS = 1
+		this._CMP_EQUAL = 2
+		this._CMP_GREATER = 4
 
 		// Initialize state
 		this.memory = new Uint8Array(65536) // 2^16
@@ -160,51 +164,51 @@ class CB16A {
 				var arg1 = this.registers[this._read_ip_word()];
 				var result = 0
 
-				if (arg1 < arg2) result |= this.CMP_LESS
-				if (arg1 == arg2) result |= this.CMP_EQUAL
-				if (arg1 > arg2) result |= this.CMP_GREATER
+				if (arg1 < arg2) result |= this._CMP_LESS
+				if (arg1 == arg2) result |= this._CMP_EQUAL
+				if (arg1 > arg2) result |= this._CMP_GREATER
 
 				this.registers[0xd] = result
 				break
 
 			case 0x18: // je
 				var destination = this._read_ip_word()
-				if (this.registers[0xd] & this.CMP_EQUAL) {
+				if (this.registers[0xd] & this._CMP_EQUAL) {
 					this.registers[0xf] = destination
 				}
 				break
 
 			case 0x19: // jg
 				var destination = this._read_ip_word()
-				if (this.registers[0xd] & this.CMP_GREATER) {
+				if (this.registers[0xd] & this._CMP_GREATER) {
 					this.registers[0xf] = destination
 				}
 				break
 
 			case 0x1a: // jge
 				var destination = this._read_ip_word()
-				if (this.registers[0xd] & (this.CMP_GREATER | this.CMP_EQUAL)) {
+				if (this.registers[0xd] & (this._CMP_GREATER | this._CMP_EQUAL)) {
 					this.registers[0xf] = destination
 				}
 				break
 
 			case 0x1b: // jl
 				var destination = this._read_ip_word()
-				if (this.registers[0xd] & this.CMP_LESS) {
+				if (this.registers[0xd] & this._CMP_LESS) {
 					this.registers[0xf] = destination
 				}
 				break
 
 			case 0x1c: // jle
 				var destination = this._read_ip_word()
-				if (this.registers[0xd] & (this.CMP_LESS | this.CMP_EQUAL)) {
+				if (this.registers[0xd] & (this._CMP_LESS | this._CMP_EQUAL)) {
 					this.registers[0xf] = destination
 				}
 				break
 
 			case 0x1d: // jne
 				var destination = this._read_ip_word()
-				if (!this.registers[0xd] & this.CMP_EQUAL) {
+				if (!this.registers[0xd] & this._CMP_EQUAL) {
 					this.registers[0xf] = destination
 				}
 				break
@@ -225,6 +229,11 @@ class CB16A {
 				var destination = this._read_ip_word()
 				var source = this._read_ip_word()
 				this.registers[destination] = this._read_mem_word(source)
+				break
+
+			case 0x21: // out
+				var source = this._read_ip_word()
+				this._write_out(this.registers[source])
 				break
 
 
