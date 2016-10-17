@@ -7,14 +7,54 @@
 <body>
 	<label>Your code:</label>
 	<br />
-	<textarea id="code"></textarea>
+	<textarea id="code" style="height: 30%"></textarea>
 	<br />
 	<button onclick="javascript:assemble()">Assemble</button>
-	<button onclick="javascript:cpu.tick()">Tick</button>
-	<button onclick="javascript:cpu.reset()">Reset CPU</button>
+	<button onclick="javascript:tick()">Tick</button>
 	<br />
 	<br />
 	<label>Output:</label>
 	<br />
 	<textarea id="output"></textarea>
+	<br />
+	<br />
+	<label>Registers:</label>
+	<table border="1">
+		<tr>
+			<td>r0</td>
+			<td>r1</td>
+			<td>r2</td>
+			<td>r3</td>
+			<td>r4</td>
+			<td>r5</td>
+			<td>r6</td>
+			<td>r7</td>
+			<td>?</td>
+			<td>?</td>
+			<td>?</td>
+			<td>?</td>
+			<td>?</td>
+			<td>cr</td>
+			<td>sp</td>
+			<td>ip</td>
+		</tr>	
+		<tr>
+			<td id="reg0"></td>
+			<td id="reg1"></td>
+			<td id="reg2"></td>
+			<td id="reg3"></td>
+			<td id="reg4"></td>
+			<td id="reg5"></td>
+			<td id="reg6"></td>
+			<td id="reg7"></td>
+			<td id="reg8"></td>
+			<td id="reg9"></td>
+			<td id="reg10"></td>
+			<td id="reg11"></td>
+			<td id="reg12"></td>
+			<td id="reg13"></td>
+			<td id="reg14"></td>
+			<td id="reg15"></td>
+		</tr>
+	</table>
 </body>
