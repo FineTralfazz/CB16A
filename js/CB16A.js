@@ -37,7 +37,8 @@ class CB16A {
 			"set": 0x1e,
 			"save": 0x1f,
 			"load": 0x20,
-			"out": 0x21
+			"out": 0x21,
+			"mul": 0x22
 		}
 
 		// Comparison flags
@@ -103,7 +104,7 @@ class CB16A {
 				address++
 				_this._write_mem_word(destination, address)
 				address += 2
-				if (source) {
+				if (source != undefined) {
 					_this._write_mem_word(source, address)
 					address += 2
 				}
@@ -236,6 +237,11 @@ class CB16A {
 				this._write_out(this.registers[source])
 				break
 
+			case 0x22: //mul
+				var destination = this._read_ip_word()
+				var source = this._read_ip_word()
+				this.registers[destination] *= this.registers[source]
+				break
 
 			default:
 				console.error(`Invalid instruction ${instruction} at ${this.registers[0xf]-1}`)
