@@ -161,8 +161,8 @@ class CB16A {
 				break
 
 			case 0x17: // cmp
-				var arg2 = this.registers[this._read_ip_word()];
 				var arg1 = this.registers[this._read_ip_word()];
+				var arg2 = this.registers[this._read_ip_word()];
 				var result = 0
 
 				if (arg1 < arg2) result |= this._CMP_LESS
