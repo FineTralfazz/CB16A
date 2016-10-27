@@ -157,7 +157,7 @@ class CB16A {
 				break
 
 			case 0x16: // jmp
-				this.registers[0xe] = this._read_ip_word()
+				this.registers[0xf] = this._read_ip_word()
 				break
 
 			case 0x17: // cmp
@@ -235,6 +235,7 @@ class CB16A {
 			case 0x21: // out
 				var source = this._read_ip_word()
 				this._write_out(this.registers[source])
+				this._write_out('\n')
 				break
 
 			case 0x22: //mul
